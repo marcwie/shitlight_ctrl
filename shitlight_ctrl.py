@@ -8,9 +8,9 @@ import urwid
 
 import shytlight_simulator as shytlight
 
-from shitlight_patterns import shooting_star_cls
+import shitlight_patterns
 
-pattern = shooting_star_cls.ShootingStarPattern()
+pattern = None
 
 in_splash_screen = False
 
@@ -51,7 +51,7 @@ def item_chosen(button, choice):
 
     # run pattern
     global pattern
-    if pattern.is_alive():
+    if pattern and pattern.is_alive():
         pattern.stop()
         shytlight.clear_buffer()
     
@@ -66,7 +66,7 @@ def show_main_menu(button):
     
 
 def exit_program(button):
-    if pattern.is_alive():
+    if pattern and pattern.is_alive():
         pattern.stop()
     shytlight.clear_buffer()
     raise urwid.ExitMainLoop()
@@ -102,9 +102,11 @@ in_splash_screen = True
 
 
 # menu screen
-choices = [ ('Shooting Star', shooting_star_cls.ShootingStarPattern),
+'''choices = [ ('Shooting Star', shooting_star_cls.ShootingStarPattern),
             ('Rain Drop', shooting_star_cls.ShootingStarPattern),
-            ('Wave', shooting_star_cls.ShootingStarPattern) ]
+            ('Wave', shooting_star_cls.ShootingStarPattern) ] '''
+
+choices = shitlight_patterns.patterns
 
 
 class PatternMenu(urwid.WidgetPlaceholder):
