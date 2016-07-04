@@ -96,7 +96,7 @@ outside = urwid.AttrMap(div, 'outside')
 inside = urwid.AttrMap(div, 'inside')
 txt = urwid.Text(('banner', '  S H I T L I G H T  '), align='center')
 streak = urwid.AttrMap(txt, 'streak')
-txt2 = urwid.Text(('bg', 'press any key'), align='center')
+txt2 = urwid.Text(('bg', 'press any key, kumpel'), align='center')
 pile = loop.widget.base_widget # .base_widget skips the decorations
 for item in [outside, inside, streak, inside, outside, txt2]:
     pile.contents.append((item, pile.options()))
@@ -110,6 +110,9 @@ in_splash_screen = True
             ('Wave', shooting_star_cls.ShootingStarPattern) ] '''
 
 choices = shitlight_patterns.patterns
+
+
+
 
 
 class PatternMenu(urwid.WidgetPlaceholder):
