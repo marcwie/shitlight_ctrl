@@ -6,7 +6,10 @@ from __future__ import print_function
 import time
 import urwid
 
-import shytlight_simulator as shytlight
+try:
+    import shytlight
+except ImportError:
+    import shytlight_simulator as shytlight
 
 import shitlight_patterns
 
