@@ -17,6 +17,33 @@ pattern = None
 
 in_splash_screen = False
 
+logo1 = '''       ___           ___                              
+      /  /\         /__/\        ___           ___    
+     /  /:/_        \  \:\      /  /\         /  /\   
+    /  /:/ /\        \__\:\    /  /:/        /  /:/   
+   /  /:/ /::\   ___ /  /::\  /__/::\       /  /:/    
+  /__/:/ /:/\:\ /__/\  /:/\:\ \__\/\:\__   /  /::\    
+  \  \:\/:/~/:/ \  \:\/:/__\/    \  \:\/\ /__/:/\:\   
+   \  \::/ /:/   \  \::/          \__\::/ \__\/  \:\  
+    \__\/ /:/     \  \:\          /__/:/       \  \:\\ 
+      /__/:/       \  \:\         \__\/         \__\/ 
+      \__\/         \__\/                             '''
+ 
+
+logo2 = '''                                              ___     
+                                             /\__\    
+                  ___           ___         /:/ _/_   
+                 /\__\         /\__\       /:/ /\__\  
+  ___     ___   /:/__/        /:/  /      /:/ /:/ _/_ 
+ /\  \   /\__\ /::\  \       /:/__/      /:/_/:/ /\__\\
+ \:\  \ /:/  / \/\:\  \__   /::\  \      \:\/:/ /:/  /
+  \:\  /:/  /   ~~\:\/\__\ /:/\:\  \      \::/_/:/  / 
+   \:\/:/  /       \::/  / \/__\:\  \      \:\/:/  /  
+    \::/  /        /:/  /       \:\__\      \::/  /   
+     \/__/         \/__/         \/__/       \/__/    
+                                                      '''
+
+
 def exit_on_q(key):
     if key in ('q', 'Q'):
         exit_program(None)
@@ -94,7 +121,7 @@ loop.widget.original_widget = urwid.Filler(urwid.Pile([]))
 div = urwid.Divider()
 outside = urwid.AttrMap(div, 'outside')
 inside = urwid.AttrMap(div, 'inside')
-txt = urwid.Text(('banner', '  S H I T L I G H T  '), align='center')
+txt = urwid.Text(('banner', logo1+'\n'+ logo2), align='center')
 streak = urwid.AttrMap(txt, 'streak')
 txt2 = urwid.Text(('bg', 'press any key, kumpel'), align='center')
 pile = loop.widget.base_widget # .base_widget skips the decorations
