@@ -1,11 +1,7 @@
 #!/usr/bin/env python2.7
-
-
 from __future__ import print_function
-
 import time
 import urwid
-
 try:
     import shytlight
 except ImportError:
@@ -50,7 +46,6 @@ def exit_on_q(key):
     elif key[0] != 'mouse press' and in_splash_screen == True:
         skip_splash(key)
     
-
 def skip_splash(key):
     global in_splash_screen
     in_splash_screen = False
@@ -88,13 +83,10 @@ def item_chosen(button, choice):
     
     pattern = choice()
     pattern.start()
-    
-
 
 def show_main_menu(button):
     
     top.main_menu(menu('Shitlight Patterns', choices))
-    
 
 def exit_program(button):
     if pattern and pattern.is_alive():
@@ -133,13 +125,7 @@ in_splash_screen = True
 
 
 # menu screen
-'''choices = [ ('Shooting Star', shooting_star_cls.ShootingStarPattern),
-            ('Rain Drop', shooting_star_cls.ShootingStarPattern),
-            ('Wave', shooting_star_cls.ShootingStarPattern) ] '''
-
 choices = shitlight_patterns.patterns
-
-
 
 
 
