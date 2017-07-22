@@ -1,8 +1,5 @@
-#!/usr/bin/env python2.7
-
-
-from __future__ import print_function
-
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
 import time
 import urwid
 
@@ -13,177 +10,379 @@ except ImportError:
 
 import shitlight_patterns
 
-pattern = None
 
-in_splash_screen = False
 
-logo1 = '''       ___           ___                              
-      /  /\         /__/\        ___           ___    
-     /  /:/_        \  \:\      /  /\         /  /\   
-    /  /:/ /\        \__\:\    /  /:/        /  /:/   
-   /  /:/ /::\   ___ /  /::\  /__/::\       /  /:/    
-  /__/:/ /:/\:\ /__/\  /:/\:\ \__\/\:\__   /  /::\    
-  \  \:\/:/~/:/ \  \:\/:/__\/    \  \:\/\ /__/:/\:\   
-   \  \::/ /:/   \  \::/          \__\::/ \__\/  \:\  
-    \__\/ /:/     \  \:\          /__/:/       \  \:\\ 
-      /__/:/       \  \:\         \__\/         \__\/ 
-      \__\/         \__\/                             '''
- 
+class CtrlView(urwid.WidgetPlaceholder):
+    logo1 = '''          ___           ___                              
+          /  /\         /__/\        ___           ___    
+         /  /:/_        \  \:\      /  /\         /  /\   
+        /  /:/ /\        \__\:\    /  /:/        /  /:/   
+       /  /:/ /::\   ___ /  /::\  /__/::\       /  /:/    
+      /__/:/ /:/\:\ /__/\  /:/\:\ \__\/\:\__   /  /::\    
+      \  \:\/:/~/:/ \  \:\/:/__\/    \  \:\/\ /__/:/\:\   
+       \  \::/ /:/   \  \::/          \__\::/ \__\/  \:\  
+        \__\/ /:/     \  \:\          /__/:/       \  \:\\ 
+          /__/:/       \  \:\         \__\/         \__\/ 
+          \__\/         \__\/                             '''
+     
 
-logo2 = '''                                              ___     
-                                             /\__\    
-                  ___           ___         /:/ _/_   
-                 /\__\         /\__\       /:/ /\__\  
-  ___     ___   /:/__/        /:/  /      /:/ /:/ _/_ 
- /\  \   /\__\ /::\  \       /:/__/      /:/_/:/ /\__\\
- \:\  \ /:/  / \/\:\  \__   /::\  \      \:\/:/ /:/  /
-  \:\  /:/  /   ~~\:\/\__\ /:/\:\  \      \::/_/:/  / 
-   \:\/:/  /       \::/  / \/__\:\  \      \:\/:/  /  
-    \::/  /        /:/  /       \:\__\      \::/  /   
-     \/__/         \/__/         \/__/       \/__/    
+    logo2 = '''                                                 ___     
+                                                 /\__\    
+                      ___           ___         /:/ _/_   
+                     /\__\         /\__\       /:/ /\__\  
+      ___     ___   /:/__/        /:/  /      /:/ /:/ _/_ 
+     /\  \   /\__\ /::\  \       /:/__/      /:/_/:/ /\__\\
+     \:\  \ /:/  / \/\:\  \__   /::\  \      \:\/:/ /:/  /
+      \:\  /:/  /   ~~\:\/\__\ /:/\:\  \      \::/_/:/  / 
+       \:\/:/  /       \::/  / \/__\:\  \      \:\/:/  /  
+        \::/  /        /:/  /       \:\__\      \::/  /   
+         \/__/         \/__/         \/__/       \/__/    
                                                       '''
 
 
-def exit_on_q(key):
-    if key in ('q', 'Q'):
-        exit_program(None)
-    elif key[0] != 'mouse press' and in_splash_screen == True:
-        skip_splash(key)
-    
-
-def skip_splash(key):
-    global in_splash_screen
-    in_splash_screen = False
-    show_menu()
-
-def show_menu():
-    shytlight.init_shitlight()
-    loop.widget = top
-
-def menu(title, choices):
-    body = [urwid.Text(title), urwid.Divider()]
-    for c in choices:
-        button = urwid.Button(c[0])
-        urwid.connect_signal(button, 'click', item_chosen, c[1])
-        body.append(urwid.AttrMap(button, None, focus_map='reversed'))
-    return urwid.ListBox(urwid.SimpleFocusListWalker(body))
-
-def menu_button(caption, callback):
-    button = urwid.Button(caption)
-    urwid.connect_signal(button, 'click', callback)
-    return urwid.AttrMap(button, None, focus_map='reversed')
-
-def item_chosen(button, choice):
-    print(choice)
-    response = urwid.Text([u'Running ', button.label, '\n'])
-    done = menu_button('Ok', show_main_menu)
-    top.pattern_menu(urwid.Filler(urwid.Pile([response, done])))
-
-    # run pattern
-    global pattern
-    if pattern and pattern.is_alive():
-        pattern.stop()
-        shytlight.clear_buffer()
-    
-    pattern = choice()
-    pattern.start()
-    
-
-
-def show_main_menu(button):
-    
-    top.main_menu(menu('Shitlight Patterns', choices))
-    
-
-def exit_program(button):
-    if pattern and pattern.is_alive():
-        pattern.stop()
-    shytlight.clear_buffer()
-    raise urwid.ExitMainLoop()
-
-
-splash_palette = [
+    def __init__(self, controller):
+        self.controller = controller
+        self.splash = True
+        self.start_time = None
+        self.offset = 0
+        self.palette = [
             ('banner', '', '', '', '#ffa', '#60d'),
             ('streak', '', '', '', 'g50', '#60a'),
             ('inside', '', '', '', 'g38', '#808'),
             ('outside', '', '', '', 'g27', '#a06'),
-            ('bg', '', '', '', 'g7', '#d06'),]
-
-placeholder = urwid.SolidFill()
-loop = urwid.MainLoop(placeholder, splash_palette,
-                          unhandled_input=exit_on_q)
-loop.screen.set_terminal_properties(colors=256)
-loop.widget = urwid.AttrMap(placeholder, 'bg')
-loop.widget.original_widget = urwid.Filler(urwid.Pile([]))
+            ('bg', '', '', '', 'g7', '#d06'),
+            ('button normal','light gray', 'dark blue', 'standout'),
+            ('button select','white',      'dark green'),
+            ('pg normal',    'white',      'black', 'standout'),
+            ('pg complete',  'white',      'dark magenta'),
+            ('pg smooth', 'dark magenta','black')]
 
 
-## splash screen
-div = urwid.Divider()
-outside = urwid.AttrMap(div, 'outside')
-inside = urwid.AttrMap(div, 'inside')
-txt = urwid.Text(('banner', logo1+'\n'+ logo2), align='center')
-streak = urwid.AttrMap(txt, 'streak')
-txt2 = urwid.Text(('bg', 'press any key, kumpel'), align='center')
-pile = loop.widget.base_widget # .base_widget skips the decorations
-for item in [outside, inside, streak, inside, outside, txt2]:
-    pile.contents.append((item, pile.options()))
-
-in_splash_screen = True
-
-
-# menu screen
-'''choices = [ ('Shooting Star', shooting_star_cls.ShootingStarPattern),
-            ('Rain Drop', shooting_star_cls.ShootingStarPattern),
-            ('Wave', shooting_star_cls.ShootingStarPattern) ] '''
-
-choices = shitlight_patterns.patterns
-
-
-
-
-
-class PatternMenu(urwid.WidgetPlaceholder):
-    def __init__(self, items):
-        super(PatternMenu, self).__init__(urwid.SolidFill('S'))
-        self.pattern = None
-
-        self.main_menu(items)
         
-    def main_menu(self, items):
-        self.original_widget = urwid.Overlay(urwid.LineBox(items),
-                  self.original_widget,
-                  align='center',
-                  valign='middle',
-                  width=('relative', 80),
-                  height=('relative', 80),
-                  left=0,
-                  right=3,
-                  top=0,
-                  bottom=2)
+        
+        self.max_box_levels = 4
+        self.box_level = 0
+        urwid.WidgetPlaceholder.__init__(self, self.splash_window())
 
-    def pattern_menu(self, items):
-        self.original_widget = urwid.Overlay(urwid.LineBox(items),
-                  self.original_widget,
-                  align='center',
-                  valign='middle',
-                  width=('relative', 80),
-                  height=('relative', 80),
-                  min_width=24, min_height=8,
-                  left=3,
-                  right=0,
-                  top=2,
-                  bottom=0)
+
+    def splash_window(self):
+        w = urwid.SolidFill()
+        w = urwid.AttrMap(w, 'bg')
+        w.original_widget = urwid.Filler(urwid.Pile([]))
+        ## splash screen
+        div = urwid.Divider()
+        outside = urwid.AttrMap(div, 'outside')
+        inside = urwid.AttrMap(div, 'inside')
+        txt = urwid.Text(('banner', self.logo1+'\n'+ self.logo2), align='center')
+        credits = urwid.Text(('banner', 'v2.0 (2017)'), align='center')
+        streak = urwid.AttrMap(txt, 'streak')
+        txt2 = urwid.Text(('bg', 'press any key, kumpel'), align='center')
+        pile = w.base_widget # .base_widget skips the decorations
+        for item in [outside, inside, streak, credits, inside, outside, txt2]:
+            pile.contents.append((item, pile.options()))
+        return w
+
+    def overlay_logic(self, fg, bg, level, height=20):
+        return urwid.Overlay(fg,
+            bg,
+            align='center', width=('relative', 60),
+            valign='middle', height=height,
+            left=level * 3,
+            right=(self.max_box_levels - level - 1) * 3,
+            top=level * 2,
+            bottom=(self.max_box_levels - level - 1) * 2)
+
+    def main_window(self):
+        self.splash = False
+        self.main_content = self.main_menu()
+        self.bg = urwid.WidgetPlaceholder(urwid.SolidFill(u'S'))
+        self.main = self.overlay_logic(urwid.LineBox(self.main_content),self.bg, self.box_level)
+        self.box_level += 1
+
+        return self.main
+
+    def open_box(self, box, height=40):
+        self.original_widget = self.overlay_logic(urwid.LineBox(box),self.original_widget,self.box_level, height)
+        self.box_level += 1
+
+    def go_back(self):
+        if self.box_level > 1:
+            self.original_widget = self.original_widget.contents[0][0]
+            self.box_level -= 1
+#        elif self.box_level == 1:
+#            self.box_level = 0
+#            self.original_widget = self.main_window()
+
+
+    def main_menu(self):
+        pattern = self.controller.get_current_pattern()
+        # header element:
+        widget_header = [urwid.Text("SHITLIGHT CONTROLL",align="center"), urwid.Divider(u"\u2015",0,1)]
+        # current Pattern:
+        if pattern is None:
+            current = "(None)"
+        elif hasattr(pattern,name):
+            current = pattern.name
+        else:
+            current = type(pattern).__name__
+        self.w_current_pattern = urwid.Text("Current Pattern: " + current)
+        self.w_current_palette = urwid.Text("Current Palette: (free)")
+        widget_current = [self.w_current_pattern, self.w_current_palette , urwid.Divider(u"\u2015",1,1)]
+        # beatdetection
+        self.beat_detection_menu_content = self.beat_detection_menu()
+        widget_beatdetection = [self.sub_menu("Beat Detection",self.beat_detection_menu_content)]
+        # pattern selection
+        self.pattern_selection_menu_content = self.pattern_menu()
+        widget_patternselect = [self.sub_menu("Select Pattern",self.pattern_selection_menu_content)]
+        # palette selection
+        self.palette_selection_menu_content = self.palette_menu()
+        widget_paletteselect = [self.sub_menu("Select Palete",self.palette_selection_menu_content)]
+
+        self.quit_button = urwid.Button("Quit")
+        urwid.connect_signal(self.quit_button, 'click', self.on_quit)
+        footer = [urwid.Divider(u"\u2015",5,0), urwid.Padding(self.quit_button,align="center",width=8)]
+        L = widget_header+widget_current+widget_beatdetection+widget_patternselect+widget_paletteselect + footer
+        # add all
+        return urwid.ListBox(urwid.SimpleFocusListWalker(L))
+
+    def sub_menu(self,caption, content):
+        contents, height = self.menu(caption, content)
+        def open_menu(button):
+            return self.open_box(contents,height)
+        return self.menu_button([caption, u'...'], open_menu)
+
+    def menu_button(self,caption, callback):
+        button = urwid.Button(caption)
+        urwid.connect_signal(button, 'click', callback)
+        return urwid.AttrMap(button, None, focus_map='reversed')        
+
+    def menu(self,title, content):
+        body = [urwid.Text(title,align="center"), urwid.Divider(u"\u2015")]
+        body.extend(content)
+        height = len(content) + 2 + 2 +2 # content + border, header, footer
+        def close_menu(button):
+            return self.go_back()
+        back = urwid.Button("back")
+        urwid.connect_signal(back, 'click', close_menu)
+        body.extend([urwid.Divider(u"\u2015"),
+            urwid.Padding(urwid.AttrWrap(back, 'button normal', 'button select'),align="center",width=8)])
+        return urwid.ListBox(urwid.SimpleListWalker(body)), height
+
+    def radio_button(self, g, l, fn):
+        w = urwid.RadioButton(g, l, "first True", on_state_change=fn)
+        w = urwid.AttrWrap(w, 'button normal', 'button select')
+        return w
+
+    def on_mode_button(self, button, state):
+        pass
+
+    def on_bpmmode_button(self, button, state):
+        pass
+
+    def beat_detection_menu(self):
+        # Declare Widgets
+        self.w_beatdetection_state = urwid.Text("Status: (unknown)")
+        self.w_beatdetection_bpm = urwid.Text("BPM: 120")
+        #self.w_beatdetection_fix = self.sub_menu("Fix BPM", [urwid.Text("Coming Soon")])
+        self.w_beatdetection_vu_meter = urwid.ProgressBar("pg normal", "pg complete", 0, 100, None)
+        self.w_beatdetection_modes = []
+        group = []
+        for m in ["No Detection", "Detect BPM", "Detect Beats"]:
+            rb = self.radio_button( group, m, self.on_mode_button )
+            self.w_beatdetection_modes.append( rb )
+        self.w_bpm_modes = []
+        ngroup = []
+        for m in ["Use detected BPM", "Fix detection to BPM", "Use fixed BPM"]:
+            rb = self.radio_button( ngroup, m, self.on_bpmmode_button )
+            self.w_bpm_modes.append( rb )
+
+
+        return [urwid.Divider(),
+                self.w_beatdetection_state, 
+                urwid.Divider(),
+                self.w_beatdetection_bpm,
+                urwid.GridFlow([urwid.Text("Volume:"), self.w_beatdetection_vu_meter],15,2,0,"left"),
+                urwid.Divider(),
+                urwid.Text("Select Detection Mode:", align="center")] + self.w_beatdetection_modes + [urwid.Text("Select BPM Mode:", align="center")] + self.w_bpm_modes + [self.sub_menu("Set BPM",[urwid.Text("TODO")])]
+                
+        
+        
+    def palette_menu(self):
+        return [urwid.Text("See you 2018, Kumpel")]
+
+    def on_select_pattern(self, button, cl):
+        self.controller.select_pattern(cl)
+        self.update()
+
+    def pattern_menu(self):
+        body = [urwid.Divider()]
+        self.pattern_selection = []
+        for c, v in self.controller.get_patterns():
+            button = urwid.Button(c[0] + (" [*]" if v else ""))
+            urwid.connect_signal(button, 'click', self.on_select_pattern, c[1])
+            self.pattern_selection.append(urwid.AttrMap(button, None, focus_map='reversed'))
+        return body + self.pattern_selection
+
+    def update_pattern_menu(self):
+        for d, w in zip(self.controller.get_patterns(), self.pattern_selection):
+            w.original_widget.set_label(d[0][0] + (" [*]" if d[1] else ""))
+
+
+    def update_beatdetection_menu(self):
+        self.w_beatdetection_state.set_text("Status: %s" % self.controller.get_analysis_state())
+        self.w_beatdetection_bpm.set_text("BPM: %.1f" % self.controller.get_bpm())
+        vol = self.controller.get_volume()
+        if vol < 1: vol=1
+        if vol > 100: vol=100
+        self.w_beatdetection_vu_meter.set_completion(vol)
+
+
 
     def keypress(self, size, key):
-        if key == 'esc' and self.pattern:
-            self.original_widget = self.original_widget[0]
+        if key in ('q', 'Q'):
+            self.controller.quit()
+        elif key == 'esc' and self.box_level > 1:
+            self.go_back()          
+        elif key[0] != 'mouse press' and self.splash == True:
+            self.original_widget = self.main_window()
         else:
-            return super(PatternMenu, self).keypress(size, key)
+            return super(CtrlView, self).keypress(size, key)
 
-top = PatternMenu(menu('Shitlight Patterns', choices))
+    def update(self):
+        self.w_current_pattern.set_text("Current Pattern: " + self.controller.get_pattern_name(self.controller.get_current_pattern()))
+        self.update_pattern_menu()
+        self.update_beatdetection_menu()
 
-loop.run()
+
+    def on_quit(self, button):
+        self.controller.quit()
+    
 
 
 
 
+
+class CtrlController:
+    def __init__(self):
+        self.view = CtrlView( self )
+        # use the first mode as the default
+        #mode = self.get_modes()[0]
+        #self.model.set_mode( mode )
+        # update the view
+        #self.view.on_mode_change( mode )
+        #self.view.update_graph(True)           
+        shytlight.init_shitlight()
+        shytlight.init_analysis(b"default")
+
+        # for debug purposes: enforce beatsync by default
+        shytlight.beat_sync(2)
+
+        self.patterns = shitlight_patterns.patterns
+        self.pattern = None
+
+
+    def main(self):
+        self.loop = urwid.MainLoop(self.view, self.view.palette, unhandled_input=exit_on_q)
+        self.loop.screen.set_terminal_properties(colors=256)
+        self.loop.set_alarm_in(1,self.animate_splash)
+        self.loop.run()
+        
+
+    def animate_splash(self, loop=None, user_data=None):
+        if self.view.splash:
+            self.loop.set_alarm_in(1,self.animate_splash)
+        else:
+            self.animate()
+
+    def animate(self, loop=None, user_data=None):
+        self.view.update()
+        self.loop.set_alarm_in(.1,self.animate)
+
+    def handle_keys(self, key):
+        if key in ('q', 'Q'):
+            self.quit()
+        elif key == 'esc' and self.view.box_level > 1:
+            self.view.go_back()          
+        elif key[0] != 'mouse press' and self.view.splash == True:
+            self.view.original_widget = self.view.main_window()
+    
+    def get_volume(self):
+        return int(shytlight.get_volume())
+
+    def get_bpm(self):
+        return shytlight.get_bpm()
+
+    def get_analysis_state(self):
+        state = shytlight.get_analysis_state()
+        if state < 0:
+            return "Analysis Stopped"
+        if state == 0:
+            return "Fixed BPM Mode"
+        if state > 0 and state <= 10:
+            return "Detect BPM Mode"
+        if state > 10:
+            return "Detect Beats mode"
+
+    def set_bpm_mode(self,state,val=0):
+        pass
+
+    def set_analysis_mode(self):
+        pass
+
+
+    def get_pattern_name(self, pattern):
+        if pattern is None:
+            return "(None)"
+        elif hasattr(pattern,"identifier"):
+            return pattern.identifier
+        else:
+            for name, cl in self.patterns:
+                if isinstance(pattern,cl): return name
+
+
+    def quit(self):
+        self.stop_shitlight()
+        raise urwid.ExitMainLoop()
+
+    def stop_shitlight(self):
+        if self.pattern and self.pattern.is_alive():
+            self.pattern.stop()
+        shytlight.clear_buffer()
+
+    def get_patterns(self):
+        c = []
+        for name, cl in self.patterns:
+            c.append(([name, cl], isinstance(self.pattern,cl)))
+        return c
+
+    def get_current_pattern(self):
+        return self.pattern
+
+    def select_pattern(self, cl):
+        if self.pattern and self.pattern.is_alive:
+            self.pattern.stop()
+            shytlight.clear_buffer()            
+
+        self.pattern = cl()
+        self.pattern.start()
+
+
+
+
+
+
+
+
+def main():
+    global control
+    control = CtrlController()
+    control.main()
+
+def exit_on_q(key):
+    global control
+    control.handle_keys(key)
+    
+
+
+if '__main__'==__name__:
+    main()      

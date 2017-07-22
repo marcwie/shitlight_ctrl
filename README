@@ -3,3 +3,7 @@ dependencies:
 numpy
 
 palettable
+
+shitlight
+
+urwid
