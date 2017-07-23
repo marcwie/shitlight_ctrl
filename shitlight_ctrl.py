@@ -468,6 +468,7 @@ class CtrlController:
     def select_pattern(self, cl):
         if self.pattern and self.pattern.is_alive:
             self.pattern.stop()
+            self.pattern.join(2.) # give pattern thread chance to finish clean
             shytlight.clear_buffer()            
 
         self.pattern = cl()
@@ -480,6 +481,7 @@ class CtrlController:
           return
         if self.pattern and self.pattern.is_alive:
             self.pattern.stop()
+            self.pattern.join(2.) # give pattern thread chance to finish clean
             shytlight.clear_buffer()
 
         cl = random.choice(self.patterns_selection)            
