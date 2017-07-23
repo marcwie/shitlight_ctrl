@@ -11,6 +11,7 @@ except ImportError:
     import shytlight_simulator as shytlight
 
 import shitlight_patterns
+import shitlight_palettes
 
 
 
@@ -102,85 +103,8 @@ class CtrlView(urwid.WidgetPlaceholder):
         urwid.WidgetPlaceholder.__init__(self, self.splash_window())
 
 
-    def splash_window(self):
-        w = urwid.SolidFill()
-        w = urwid.AttrMap(w, 'bg')
-        w.original_widget = urwid.Filler(urwid.Pile([]))
-        ## splash screen
-        div = urwid.Divider()
-        outside = urwid.AttrMap(div, 'outside')
-        inside = urwid.AttrMap(div, 'inside')
-        txt = urwid.Text(('banner', self.logo1+'\n'+ self.logo2), align='center')
-        credits = urwid.Text(('banner', 'v2.0 (2017)'), align='center')
-        streak = urwid.AttrMap(txt, 'streak')
-        txt2 = urwid.Text(('bg', 'press any key, kumpel'), align='center')
-        pile = w.base_widget # .base_widget skips the decorations
-        for item in [outside, inside, streak, credits, inside, outside, txt2]:
-            pile.contents.append((item, pile.options()))
-        return w
+    ### UTILITY FUNCTIONS
 
-    def overlay_logic(self, fg, bg, level, height=20):
-        return urwid.Overlay(fg,
-            bg,
-            align='center', width=('relative', 60),
-            valign='middle', height=height,
-            left=level * 3,
-            right=(self.max_box_levels - level - 1) * 3,
-            top=level * 2,
-            bottom=(self.max_box_levels - level - 1) * 2)
-
-    def main_window(self):
-        self.splash = False
-        self.main_content = self.main_menu()
-        self.bg = urwid.WidgetPlaceholder(urwid.SolidFill(u'S'))
-        self.main = self.overlay_logic(urwid.LineBox(self.main_content),self.bg, self.box_level)
-        self.box_level += 1
-
-        return self.main
-
-    def open_box(self, box, height=40):
-        self.original_widget = self.overlay_logic(urwid.LineBox(box),self.original_widget,self.box_level, height)
-        self.box_level += 1
-
-    def go_back(self):
-        if self.box_level > 1:
-            self.original_widget = self.original_widget.contents[0][0]
-            self.box_level -= 1
-#        elif self.box_level == 1:
-#            self.box_level = 0
-#            self.original_widget = self.main_window()
-
-
-    def main_menu(self):
-        pattern = self.controller.get_current_pattern()
-        # header element:
-        widget_header = [urwid.Text("SHITLIGHT CONTROLL",align="center"), urwid.Divider(u"\u2015",0,1)]
-        # current Pattern:
-        if pattern is None:
-            current = "(None)"
-        elif hasattr(pattern,name):
-            current = pattern.name
-        else:
-            current = type(pattern).__name__
-        self.w_current_pattern = urwid.Text("Current Pattern: " + current)
-        self.w_current_palette = urwid.Text("Current Palette: (free)")
-        widget_current = [self.w_current_pattern, self.w_current_palette , urwid.Divider(u"\u2015",1,1)]
-        # beatdetection
-        self.beat_detection_menu_content = self.beat_detection_menu()
-        widget_beatdetection = [self.sub_menu("Beat Detection",self.beat_detection_menu_content)]
-        # pattern selection
-        self.pattern_selection_menu_content = self.pattern_menu()
-        widget_patternselect = [self.sub_menu("Select Pattern",self.pattern_selection_menu_content)]
-        # palette selection
-        self.palette_selection_menu_content = self.palette_menu()
-        widget_paletteselect = [self.sub_menu("Select Palete",self.palette_selection_menu_content)]
-
-        self.quit_button = urwid.Button("Quit")
-        urwid.connect_signal(self.quit_button, 'click', self.on_quit)
-        footer = [urwid.Divider(u"\u2015",5,0), urwid.Padding(self.quit_button,align="center",width=8)]
-        L = widget_header+widget_current+widget_beatdetection+widget_patternselect+widget_paletteselect + footer
-        # add all
-        return urwid.ListBox(urwid.SimpleFocusListWalker(L))
 
     def sub_menu(self,caption, content,menu_caption=None):
         if menu_caption is None:
@@ -215,6 +139,122 @@ class CtrlView(urwid.WidgetPlaceholder):
         w = urwid.RadioButton(g, l, "first True", on_state_change=fn)
         w = urwid.AttrWrap(w, 'button normal', 'button select')
         return w
+
+    def overlay_logic(self, fg, bg, level, height=20):
+        return urwid.Overlay(fg,
+            bg,
+            align='center', width=('relative', 60),
+            valign='middle', height=height,
+            left=level * 3,
+            right=(self.max_box_levels - level - 1) * 3,
+            top=level * 2,
+            bottom=(self.max_box_levels - level - 1) * 2)
+
+    def open_box(self, box, height=40):
+        self.original_widget = self.overlay_logic(urwid.LineBox(box),self.original_widget,self.box_level, height)
+        self.box_level += 1
+
+    def go_back(self):
+        if self.box_level > 1:
+            self.original_widget = self.original_widget.contents[0][0]
+            self.box_level -= 1
+#        elif self.box_level == 1:
+#            self.box_level = 0
+#            self.original_widget = self.main_window()
+
+
+
+    ### SPLASH WINDOW
+
+
+    def splash_window(self):
+        w = urwid.SolidFill()
+        w = urwid.AttrMap(w, 'bg')
+        w.original_widget = urwid.Filler(urwid.Pile([]))
+        ## splash screen
+        div = urwid.Divider()
+        outside = urwid.AttrMap(div, 'outside')
+        inside = urwid.AttrMap(div, 'inside')
+        txt = urwid.Text(('banner', self.logo1+'\n'+ self.logo2), align='center')
+        credits = urwid.Text(('banner', 'v2.0 (2017)'), align='center')
+        streak = urwid.AttrMap(txt, 'streak')
+        txt2 = urwid.Text(('bg', 'press any key, kumpel'), align='center')
+        pile = w.base_widget # .base_widget skips the decorations
+        for item in [outside, inside, streak, credits, inside, outside, txt2]:
+            pile.contents.append((item, pile.options()))
+        return w
+
+
+    ### MAIN MENU DEFINITIONS & BEHAVIOUR CALLS
+
+    def main_window(self):
+        self.splash = False
+        self.main_content = self.main_menu()
+        self.bg = urwid.WidgetPlaceholder(urwid.SolidFill(u'S'))
+        self.main = self.overlay_logic(urwid.LineBox(self.main_content),self.bg, self.box_level)
+        self.box_level += 1
+
+        return self.main
+
+    def main_menu(self):
+        pattern = self.controller.get_current_pattern()
+        # header element:
+        widget_header = [urwid.Text("SHITLIGHT CONTROLL",align="center"), urwid.Divider(u"\u2015",0,1)]
+        # current Pattern:
+        if pattern is None:
+            current = "(None)"
+        elif hasattr(pattern,name):
+            current = pattern.name
+        else:
+            current = type(pattern).__name__
+        self.w_current_pattern = urwid.Text("Current Pattern: " + current)
+        self.w_current_palette = urwid.Text("Current Palette: (free)")
+        widget_current = [self.w_current_pattern, self.w_current_palette , urwid.Divider(u"\u2015",1,1)]
+        # beatdetection
+        self.beat_detection_menu_content = self.beat_detection_menu()
+        widget_beatdetection = [self.sub_menu("Beat Detection",self.beat_detection_menu_content)]
+        # pattern selection
+        self.pattern_selection_menu_content = self.pattern_menu()
+        widget_patternselect = [self.sub_menu("Select Pattern",self.pattern_selection_menu_content)]
+        # palette selection
+        self.palette_selection_menu_content = self.palette_menu()
+        widget_paletteselect = [self.sub_menu("Select Palete",self.palette_selection_menu_content)]
+
+        self.quit_button = urwid.Button("Quit")
+        urwid.connect_signal(self.quit_button, 'click', self.on_quit)
+        footer = [urwid.Divider(u"\u2015",5,0), urwid.Padding(self.quit_button,align="center",width=8)]
+        L = widget_header+widget_current+widget_beatdetection+widget_patternselect+widget_paletteselect + footer
+        # add all
+        return urwid.ListBox(urwid.SimpleFocusListWalker(L))
+
+
+    def update(self):
+        self.w_current_pattern.set_text("Current Pattern: " + self.controller.get_pattern_name(self.controller.get_current_pattern()))
+        self.w_current_palette.set_text(["Current Palette: " + self.controller.get_palette_name(self.controller.get_current_palette()).ljust(15)]+self.palette_preview_string(self.controller.get_current_palette().generate_preview()))
+        self.update_pattern_menu()
+        self.update_palette_menu()
+        self.update_beatdetection_menu()
+
+
+
+    def keypress(self, size, key):
+        if key in ('q', 'Q'):
+            self.controller.quit()
+        elif key == 'esc' and self.box_level > 1:
+            self.go_back()          
+        elif key[0] != 'mouse press' and self.splash == True:
+            self.original_widget = self.main_window()
+        else:
+            return super(CtrlView, self).keypress(size, key)
+
+
+    def on_quit(self, button):
+        self.controller.quit()
+    
+
+
+    ### BEAT DETECTION MENU
+
 
     def on_mode_button(self, button, state):
         if state:
@@ -260,17 +300,25 @@ class CtrlView(urwid.WidgetPlaceholder):
                 self.div(),
                 urwid.Text("Select Detection Mode:", align="center")] + self.w_beatdetection_modes + [self.div(), urwid.Text("Select BPM Mode (not Implemented):", align="center")] + self.w_bpm_modes + fix_widget
                 
+
+    def update_beatdetection_menu(self):
+        self.w_beatdetection_state.set_text("Status: %s" % self.controller.get_analysis_state())
+        self.w_beatdetection_bpm.set_text("BPM: %.1f" % self.controller.get_bpm())
+        vol = self.controller.get_volume()
+        if vol < 1: vol=1
+        if vol > 100: vol=100
+        self.w_beatdetection_vu_meter.set_completion(vol)
         
-        
-    def palette_menu(self):
-        return [urwid.Text("See you 2018, Kumpel")]
+
+    ### PATTERN MENU
+
 
     def on_pattern_mode_button(self, button, state):
         if state:
             self.controller.set_pattern_mode(self.pattern_mode_names.index(button.get_label()))
 
     def on_pattern_timer(self, w, new_value):
-        self.controller.set_timer(int(new_value))
+        self.controller.set_pattern_timer(int(new_value))
 
     def on_select_pattern(self, button, cl):
         self.controller.select_pattern(cl)
@@ -299,40 +347,52 @@ class CtrlView(urwid.WidgetPlaceholder):
         return  [urwid.Text("Select Play Mode:", align="center")] + self.w_pattern_mode_menu + [timer_widget, self.div(), explain, self.div()] + self.pattern_selection
 
     def update_pattern_menu(self):
-        for d, w in zip(self.controller.get_patterns(), self.pattern_selection):
-            at_map = ({'button normal':'button active'} if d[1] else {'button active':'button normal'})
-            w.set_attr_map(at_map)
+        pass
 
 
-    def update_beatdetection_menu(self):
-        self.w_beatdetection_state.set_text("Status: %s" % self.controller.get_analysis_state())
-        self.w_beatdetection_bpm.set_text("BPM: %.1f" % self.controller.get_bpm())
-        vol = self.controller.get_volume()
-        if vol < 1: vol=1
-        if vol > 100: vol=100
-        self.w_beatdetection_vu_meter.set_completion(vol)
+    ### PALETTE MENU
 
 
+    def on_palette_mode_button(self, button, state):
+        if state:
+            self.controller.set_palette_mode(self.palette_mode_names.index(button.get_label()))
 
-    def keypress(self, size, key):
-        if key in ('q', 'Q'):
-            self.controller.quit()
-        elif key == 'esc' and self.box_level > 1:
-            self.go_back()          
-        elif key[0] != 'mouse press' and self.splash == True:
-            self.original_widget = self.main_window()
-        else:
-            return super(CtrlView, self).keypress(size, key)
+    def on_palette_timer(self, w, new_value):
+        self.controller.set_palette_timer(int(new_value))
 
-    def update(self):
-        self.w_current_pattern.set_text("Current Pattern: " + self.controller.get_pattern_name(self.controller.get_current_pattern()))
-        self.update_pattern_menu()
-        self.update_beatdetection_menu()
+    def on_select_palette(self, button, cl):
+        self.controller.select_palette(cl)
+        self.update()
 
+    def on_toggle_palette(self, button, state, cl):
+        self.controller.toggle_palette(cl, state)
+        self.update()
 
-    def on_quit(self, button):
-        self.controller.quit()
-    
+    def palette_menu(self):
+        group = []
+        self.palette_mode_names = ["Loop Single Palette", "Select Random Palette"]
+        self.w_palette_mode_menu = []
+        for m in self.palette_mode_names:
+            rb = self.radio_button( group, m, self.on_palette_mode_button )
+            self.w_palette_mode_menu.append( rb )
+        self.palette_timer_widget = urwid.IntEdit(('',"Palette Timer [s]: "),default=60)
+        timer_widget = urwid.AttrMap(self.palette_timer_widget, 'input normal', 'input select')
+        urwid.connect_signal(self.palette_timer_widget, 'change', self.on_palette_timer)
+        explain = urwid.Text("ENTER: change palette, SPACE: (un)select", align="center")
+        self.palette_selection = []
+        l_max = 22
+        for c in self.controller.get_palettes():
+            button = CheckButton([c[0].ljust(l_max)]+self.palette_preview_string(c[2]),False,False, self.on_toggle_palette, c[1])
+            urwid.connect_signal(button, 'click', self.on_select_palette, c[1])
+            self.palette_selection.append(urwid.AttrMap(button, 'button normal', 'button select'))
+        return  [urwid.Text("Select Play Mode:", align="center")] + self.w_palette_mode_menu + [timer_widget, self.div(), explain, self.div()] + self.palette_selection
+
+    def palette_preview_string(self,preview_palette):
+        return [(n[0],"  ") for n in preview_palette]
+
+    def update_palette_menu(self):
+        pass
+
 
 
 
@@ -341,12 +401,8 @@ class CtrlView(urwid.WidgetPlaceholder):
 class CtrlController:
     def __init__(self):
         self.view = CtrlView( self )
-        # use the first mode as the default
-        #mode = self.get_modes()[0]
-        #self.model.set_mode( mode )
-        # update the view
-        #self.view.on_mode_change( mode )
-        #self.view.update_graph(True)           
+
+ 
         shytlight.init_shitlight()
         shytlight.init_analysis(b"default")
 
@@ -355,8 +411,16 @@ class CtrlController:
         self.pattern = None
         self.patterns_selection = []
 
+        self.palettes = shitlight_palettes.palettes
+        self.palette = shitlight_palettes.fallback # always start with a palette
+        self.palettes_selection = []
+
+
         self.pattern_alarm = None
         self.pattern_timer = 60
+
+        self.palette_alarm = None
+        self.palette_timer = 20
 
         self.fixed_bpm = 120.0
         self.bpm_mode = 0
@@ -367,6 +431,7 @@ class CtrlController:
         self.loop = urwid.MainLoop(self.view, self.view.palette, unhandled_input=exit_on_q)
         self.loop.screen.set_terminal_properties(colors=256)
         self.loop.set_alarm_in(1,self.animate_splash)
+        self.register_palettes_preview()
         self.loop.run()
         
 
@@ -388,6 +453,10 @@ class CtrlController:
         elif key[0] != 'mouse press' and self.view.splash == True:
             self.view.original_widget = self.view.main_window()
     
+
+    ### BEATSYNC FUNCTIONS
+
+
     def get_volume(self):
         return int(shytlight.get_volume())
 
@@ -415,7 +484,11 @@ class CtrlController:
         enable_int = val*10
         shytlight.beat_sync(enable_int)
 
-    def set_timer(self, value):
+
+    ### PATTERN FUNCTIONS
+
+
+    def set_pattern_timer(self, value):
         self.pattern_timer = value
         if self.pattern_alarm:
           self.update_pattern_alarm()
@@ -459,11 +532,6 @@ class CtrlController:
         elif cl in self.patterns_selection:
             self.patterns_selection.remove(cl)
 
-    def stop_shitlight(self):
-        if self.pattern and self.pattern.is_alive():
-            self.pattern.stop()
-        shytlight.clear_buffer()
-
 
     def select_pattern(self, cl):
         if self.pattern and self.pattern.is_alive:
@@ -472,6 +540,10 @@ class CtrlController:
             shytlight.clear_buffer()            
 
         self.pattern = cl()
+        try:
+          self.pattern.set_palette(self.palette)
+        except AttributeError:
+          pass # means pattern doesn't support palette loading
         self.pattern.start()
 
     def select_random_pattern(self,loop=None, user_data=None):
@@ -479,16 +551,95 @@ class CtrlController:
           # no pattern selected for choice, do nothing but set new alarm
           self.pattern_alarm = self.loop.set_alarm_in(self.pattern_timer,self.select_random_pattern)
           return
-        if self.pattern and self.pattern.is_alive:
-            self.pattern.stop()
-            self.pattern.join(2.) # give pattern thread chance to finish clean
-            shytlight.clear_buffer()
 
-        cl = random.choice(self.patterns_selection)            
-        self.pattern = cl()
-        self.pattern.start()
+        cl = random.choice(self.patterns_selection)   
+        self.select_pattern(cl)
 
         self.pattern_alarm = self.loop.set_alarm_in(self.pattern_timer,self.select_random_pattern)        
+
+
+    ### PALETTE FUNCTIONS
+
+
+    def set_palette_timer(self, value):
+        self.palette_timer = value
+        if self.palette_alarm:
+          self.update_palette_alarm()
+
+    def set_palette_mode(self, mode):
+        if mode == 0:
+          self.loop.remove_alarm(self.palette_alarm)
+          self.palette_alarm = None
+        if mode == 1:
+          self.update_palette_alarm()
+
+    def update_palette_alarm(self):
+        if self.palette_alarm:
+          self.loop.remove_alarm(self.palette_alarm)
+        self.palette_alarm = self.loop.set_alarm_in(self.palette_timer,self.select_random_palette)
+
+
+    def get_palette_name(self, palette):
+        if palette is None:
+            return "(None)"
+        elif hasattr(palette,"identifier"):
+            return palette.identifier
+        else:
+            for name, cl in self.palettes:
+                if palette==cl: return name
+
+
+
+    def get_palettes(self):
+        c = []
+        for name, cl in self.palettes:
+            c.append((name, cl, cl.generate_preview()))
+        return c
+
+    def register_palettes_preview(self):
+        c = self.get_palettes()
+        p = []
+        for n in c:
+          p.extend(n[2])
+        self.loop.screen.register_palette(p)
+
+    def get_current_palette(self):
+        return self.palette
+
+    def toggle_palette(self, cl, state):
+        if state and cl not in self.palettes_selection:
+            self.palettes_selection.append(cl)
+        elif cl in self.palettes_selection:
+            self.palettes_selection.remove(cl)
+
+
+    def select_palette(self, cl):
+        self.palette = cl
+        try:
+            self.pattern.set_palette(self.palette)
+        except AttributeError:
+            pass
+
+    def select_random_palette(self,loop=None, user_data=None):
+        if not self.palettes_selection:
+          # no palette selected for choice, do nothing but set new alarm
+          self.palette_alarm = self.loop.set_alarm_in(self.palette_timer,self.select_random_palette)
+          return
+        cl = random.choice(self.palettes_selection)            
+        self.select_palette(self.palette)
+
+        self.palette_alarm = self.loop.set_alarm_in(self.palette_timer,self.select_random_palette)      
+
+
+    ### QUITTING FUNCTIONS
+
+
+    def stop_shitlight(self):
+        if self.pattern and self.pattern.is_alive():
+            self.pattern.stop()
+        shytlight.clear_buffer()
+
+
 
 
     def quit(self):
