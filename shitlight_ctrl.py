@@ -3,12 +3,41 @@ from __future__ import (absolute_import, division,
 import time
 import urwid
 
+import random
+
 try:
     import shytlight
 except ImportError:
     import shytlight_simulator as shytlight
 
 import shitlight_patterns
+
+
+
+class CheckButton(urwid.CheckBox):
+  """ CheckButton combines CheckBox with Button behaviour"""
+  signals = ["change","click"]
+  def __init__(self,*args,**kwargs):
+    super(CheckButton,self).__init__(*args,**kwargs)
+
+  def keypress(self, size, key):
+    if key == " ":
+      self.toggle_state()
+    elif self._command_map[key] != urwid.ACTIVATE:
+      return key
+    else:
+      self._emit('click')
+
+  def mouse_event(self, size, event, button, x, y, focus):
+    if not urwid.util.is_mouse_press(event):
+      return False
+
+    if button == 1:
+      self._emit('click')
+
+    if button == 2:
+      self.toggle_state()
+    return True
 
 
 
@@ -51,11 +80,19 @@ class CtrlView(urwid.WidgetPlaceholder):
             ('inside', '', '', '', 'g38', '#808'),
             ('outside', '', '', '', 'g27', '#a06'),
             ('bg', '', '', '', 'g7', '#d06'),
-            ('button normal','light gray', 'dark blue', 'standout'),
-            ('button select','white',      'dark green'),
+            ('button normal','light gray', 'black', 'standout'),
+            ('button select','white',      'dark gray'),
+            ('button active', 'yellow', 'black', 'standout'),
             ('pg normal',    'white',      'black', 'standout'),
             ('pg complete',  'white',      'dark magenta'),
-            ('pg smooth', 'dark magenta','black')]
+            ('pg smooth', 'dark magenta','black'),
+            ('input normal', 'light gray', 'dark gray'),
+            ('input select', 'white', 'dark gray'),
+            ('menu_button','light gray', 'black', 'standout'),
+            ('menu_button_focus','white',      'dark gray')]
+
+
+
 
 
         
@@ -145,16 +182,19 @@ class CtrlView(urwid.WidgetPlaceholder):
         # add all
         return urwid.ListBox(urwid.SimpleFocusListWalker(L))
 
-    def sub_menu(self,caption, content):
-        contents, height = self.menu(caption, content)
+    def sub_menu(self,caption, content,menu_caption=None):
+        if menu_caption is None:
+            menu_caption=caption
+        contents, height = self.menu(menu_caption, content)
         def open_menu(button):
             return self.open_box(contents,height)
         return self.menu_button([caption, u'...'], open_menu)
 
+
     def menu_button(self,caption, callback):
         button = urwid.Button(caption)
         urwid.connect_signal(button, 'click', callback)
-        return urwid.AttrMap(button, None, focus_map='reversed')        
+        return urwid.AttrMap(button, 'menu_button', 'menu_button_focus')        
 
     def menu(self,title, content):
         body = [urwid.Text(title,align="center"), urwid.Divider(u"\u2015")]
@@ -165,8 +205,11 @@ class CtrlView(urwid.WidgetPlaceholder):
         back = urwid.Button("back")
         urwid.connect_signal(back, 'click', close_menu)
         body.extend([urwid.Divider(u"\u2015"),
-            urwid.Padding(urwid.AttrWrap(back, 'button normal', 'button select'),align="center",width=8)])
+            urwid.Padding(urwid.AttrWrap(back, 'menu_button', 'menu_button_focus'),align="center",width=8)])
         return urwid.ListBox(urwid.SimpleListWalker(body)), height
+
+    def div(self):
+        return urwid.Divider(u"\u2015")
 
     def radio_button(self, g, l, fn):
         w = urwid.RadioButton(g, l, "first True", on_state_change=fn)
@@ -174,12 +217,19 @@ class CtrlView(urwid.WidgetPlaceholder):
         return w
 
     def on_mode_button(self, button, state):
-        pass
+        if state:
+            self.controller.set_beatsync(self.beatmode_names.index(button.get_label()))
 
     def on_bpmmode_button(self, button, state):
-        pass
+        if state:
+            self.controller.set_bpmfix(self.bpmmode_names.index(button.get_label()))
+
+    def on_fix_bpm(self, w, new_value):
+        self.controller.set_fix_bpm_value(int(new_value))
 
     def beat_detection_menu(self):
+        self.beatmode_names = ["No Detection", "Detect BPM", "Detect Beats"]
+        self.bpmmode_names = ["Use detected BPM", "Fix detection to BPM", "Use fixed BPM"]
         # Declare Widgets
         self.w_beatdetection_state = urwid.Text("Status: (unknown)")
         self.w_beatdetection_bpm = urwid.Text("BPM: 120")
@@ -187,45 +237,71 @@ class CtrlView(urwid.WidgetPlaceholder):
         self.w_beatdetection_vu_meter = urwid.ProgressBar("pg normal", "pg complete", 0, 100, None)
         self.w_beatdetection_modes = []
         group = []
-        for m in ["No Detection", "Detect BPM", "Detect Beats"]:
+        for m in self.beatmode_names:
             rb = self.radio_button( group, m, self.on_mode_button )
             self.w_beatdetection_modes.append( rb )
         self.w_bpm_modes = []
         ngroup = []
-        for m in ["Use detected BPM", "Fix detection to BPM", "Use fixed BPM"]:
+        for m in self.bpmmode_names:
             rb = self.radio_button( ngroup, m, self.on_bpmmode_button )
             self.w_bpm_modes.append( rb )
+
+        self.w_beatdetection_fix = urwid.IntEdit(('',"Fixed BPM: "),default=120)
+        fix_widget = [urwid.AttrMap(self.w_beatdetection_fix, 'input normal', 'input select')]
+        urwid.connect_signal(self.w_beatdetection_fix, 'change', self.on_fix_bpm)
 
 
         return [urwid.Divider(),
                 self.w_beatdetection_state, 
                 urwid.Divider(),
+                self.div(),
                 self.w_beatdetection_bpm,
                 urwid.GridFlow([urwid.Text("Volume:"), self.w_beatdetection_vu_meter],15,2,0,"left"),
-                urwid.Divider(),
-                urwid.Text("Select Detection Mode:", align="center")] + self.w_beatdetection_modes + [urwid.Text("Select BPM Mode:", align="center")] + self.w_bpm_modes + [self.sub_menu("Set BPM",[urwid.Text("TODO")])]
+                self.div(),
+                urwid.Text("Select Detection Mode:", align="center")] + self.w_beatdetection_modes + [self.div(), urwid.Text("Select BPM Mode (not Implemented):", align="center")] + self.w_bpm_modes + fix_widget
                 
         
         
     def palette_menu(self):
         return [urwid.Text("See you 2018, Kumpel")]
 
+    def on_pattern_mode_button(self, button, state):
+        if state:
+            self.controller.set_pattern_mode(self.pattern_mode_names.index(button.get_label()))
+
+    def on_pattern_timer(self, w, new_value):
+        self.controller.set_timer(int(new_value))
+
     def on_select_pattern(self, button, cl):
         self.controller.select_pattern(cl)
         self.update()
 
+    def on_toggle_pattern(self, button, state, cl):
+        self.controller.toggle_pattern(cl, state)
+        self.update()
+
     def pattern_menu(self):
-        body = [urwid.Divider()]
+        group = []
+        self.pattern_mode_names = ["Loop Single Pattern", "Select Random Pattern"]
+        self.w_pattern_mode_menu = []
+        for m in self.pattern_mode_names:
+            rb = self.radio_button( group, m, self.on_pattern_mode_button )
+            self.w_pattern_mode_menu.append( rb )
+        self.pattern_timer_widget = urwid.IntEdit(('',"Pattern Timer [s]: "),default=60)
+        timer_widget = urwid.AttrMap(self.pattern_timer_widget, 'input normal', 'input select')
+        urwid.connect_signal(self.pattern_timer_widget, 'change', self.on_pattern_timer)
+        explain = urwid.Text("ENTER: change pattern, SPACE: (un)select", align="center")
         self.pattern_selection = []
         for c, v in self.controller.get_patterns():
-            button = urwid.Button(c[0] + (" [*]" if v else ""))
+            button = CheckButton(c[0],v,False, self.on_toggle_pattern, c[1])
             urwid.connect_signal(button, 'click', self.on_select_pattern, c[1])
-            self.pattern_selection.append(urwid.AttrMap(button, None, focus_map='reversed'))
-        return body + self.pattern_selection
+            self.pattern_selection.append(urwid.AttrMap(button, 'button normal', 'button select'))
+        return  [urwid.Text("Select Play Mode:", align="center")] + self.w_pattern_mode_menu + [timer_widget, self.div(), explain, self.div()] + self.pattern_selection
 
     def update_pattern_menu(self):
         for d, w in zip(self.controller.get_patterns(), self.pattern_selection):
-            w.original_widget.set_label(d[0][0] + (" [*]" if d[1] else ""))
+            at_map = ({'button normal':'button active'} if d[1] else {'button active':'button normal'})
+            w.set_attr_map(at_map)
 
 
     def update_beatdetection_menu(self):
@@ -274,11 +350,17 @@ class CtrlController:
         shytlight.init_shitlight()
         shytlight.init_analysis(b"default")
 
-        # for debug purposes: enforce beatsync by default
-        shytlight.beat_sync(2)
 
         self.patterns = shitlight_patterns.patterns
         self.pattern = None
+        self.patterns_selection = []
+
+        self.pattern_alarm = None
+        self.pattern_timer = 60
+
+        self.fixed_bpm = 120.0
+        self.bpm_mode = 0
+
 
 
     def main(self):
@@ -323,11 +405,32 @@ class CtrlController:
         if state > 10:
             return "Detect Beats mode"
 
-    def set_bpm_mode(self,state,val=0):
-        pass
+    def set_bpmfix(self,val=0):
+        pass 
 
-    def set_analysis_mode(self):
-        pass
+    def set_fix_bpm_value(self,value=120):
+        self.fixed_bpm = float(value)
+
+    def set_beatsync(self,val=0):
+        enable_int = val*10
+        shytlight.beat_sync(enable_int)
+
+    def set_timer(self, value):
+        self.pattern_timer = value
+        if self.pattern_alarm:
+          self.update_pattern_alarm()
+
+    def set_pattern_mode(self, mode):
+        if mode == 0:
+          self.loop.remove_alarm(self.pattern_alarm)
+          self.pattern_alarm = None
+        if mode == 1:
+          self.update_pattern_alarm()
+
+    def update_pattern_alarm(self):
+        if self.pattern_alarm:
+          self.loop.remove_alarm(self.pattern_alarm)
+        self.pattern_alarm = self.loop.set_alarm_in(self.pattern_timer,self.select_random_pattern)
 
 
     def get_pattern_name(self, pattern):
@@ -340,14 +443,6 @@ class CtrlController:
                 if isinstance(pattern,cl): return name
 
 
-    def quit(self):
-        self.stop_shitlight()
-        raise urwid.ExitMainLoop()
-
-    def stop_shitlight(self):
-        if self.pattern and self.pattern.is_alive():
-            self.pattern.stop()
-        shytlight.clear_buffer()
 
     def get_patterns(self):
         c = []
@@ -358,6 +453,18 @@ class CtrlController:
     def get_current_pattern(self):
         return self.pattern
 
+    def toggle_pattern(self, cl, state):
+        if state and cl not in self.patterns_selection:
+            self.patterns_selection.append(cl)
+        elif cl in self.patterns_selection:
+            self.patterns_selection.remove(cl)
+
+    def stop_shitlight(self):
+        if self.pattern and self.pattern.is_alive():
+            self.pattern.stop()
+        shytlight.clear_buffer()
+
+
     def select_pattern(self, cl):
         if self.pattern and self.pattern.is_alive:
             self.pattern.stop()
@@ -365,6 +472,26 @@ class CtrlController:
 
         self.pattern = cl()
         self.pattern.start()
+
+    def select_random_pattern(self,loop=None, user_data=None):
+        if not self.patterns_selection:
+          # no pattern selected for choice, do nothing but set new alarm
+          self.pattern_alarm = self.loop.set_alarm_in(self.pattern_timer,self.select_random_pattern)
+          return
+        if self.pattern and self.pattern.is_alive:
+            self.pattern.stop()
+            shytlight.clear_buffer()
+
+        cl = random.choice(self.patterns_selection)            
+        self.pattern = cl()
+        self.pattern.start()
+
+        self.pattern_alarm = self.loop.set_alarm_in(self.pattern_timer,self.select_random_pattern)        
+
+
+    def quit(self):
+        self.stop_shitlight()
+        raise urwid.ExitMainLoop()
 
 
 
